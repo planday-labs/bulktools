@@ -1,18 +1,42 @@
 name: Deploy to production
 
-# Runs on every push to main (i.e. after a PR is merged).
-# Add your deployment steps below once the project is ready.
 on:
   push:
     branches: [main]
 
 jobs:
-  deploy-production:
-    name: Deploy to production
+  build-and-deploy:
+    name: Build and deploy to production
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    env:
+      APP_NAME: ${{ github.event.repository.name }}
+      ACR: labsacrprod.azurecr.io
+      RESOURCE_GROUP: labs-rg-production
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@v4
 
-      # TODO: add deployment steps
-      - name: Placeholder
-        run: echo "Production deployment not yet configured for this project."
+      - name: Azure login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Build and push image
+        run: |
+          az acr build \
+            --registry labsacrprod \
+            --image ${{ env.APP_NAME }}:${{ github.sha }} \
+            --image ${{ env.APP_NAME }}:latest \
+            .
+
+      - name: Deploy to production Container App
+        run: |
+          az containerapp update \
+            --name ${{ env.APP_NAME }}-production \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --image ${{ env.ACR }}/${{ env.APP_NAME }}:${{ github.sha }} \
+            --subscription ${{ secrets.AZURE_SUBSCRIPTION_ID }}
