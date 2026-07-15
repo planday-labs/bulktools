@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/InternalHostedFrontendTools.Api/InternalHostedFrontendTools.Api.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/InternalHostedFrontendTools.Tests/InternalHostedFrontendTools.Tests.csproj" />
+  </Folder>
+</Solution>

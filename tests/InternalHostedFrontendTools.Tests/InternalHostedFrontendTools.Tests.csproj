@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="../../src/InternalHostedFrontendTools.Api/InternalHostedFrontendTools.Api.csproj" />
+  </ItemGroup>
+
+</Project>

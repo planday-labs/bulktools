@@ -1,0 +1,5 @@
+{
+  "name": "GitHub: Stage: Planday Bulk Employee Updater V2",
+  "description": "A tool to bulk update employee details, HR data, wages, and assignments via the Planday Open API.",
+  "requestFramePermissions": []
+}

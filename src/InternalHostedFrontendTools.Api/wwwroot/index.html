@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Planday Internal Tools</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #f8fafc;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 3rem 1rem;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 3rem;
+    }
+
+    header h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      color: #0f172a;
+      margin-bottom: 0.5rem;
+    }
+
+    header p {
+      color: #64748b;
+      font-size: 1rem;
+    }
+
+    .tools-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 1.25rem;
+      width: 100%;
+      max-width: 900px;
+    }
+
+    .tool-card {
+      display: flex;
+      flex-direction: column;
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 1.5rem;
+      text-decoration: none;
+      color: inherit;
+      transition: box-shadow 0.15s, border-color 0.15s, transform 0.15s;
+    }
+
+    .tool-card:hover {
+      box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+      border-color: #2563eb;
+      transform: translateY(-2px);
+    }
+
+    .tool-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 8px;
+      background: #eff6ff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 1rem;
+    }
+
+    .tool-icon svg {
+      width: 22px;
+      height: 22px;
+      stroke: #2563eb;
+    }
+
+    .tool-card h2 {
+      font-size: 1rem;
+      font-weight: 600;
+      color: #0f172a;
+      margin-bottom: 0.375rem;
+    }
+
+    .tool-card p {
+      font-size: 0.875rem;
+      color: #64748b;
+      line-height: 1.5;
+      flex: 1;
+    }
+
+    .tool-card .arrow {
+      margin-top: 1rem;
+      font-size: 0.8rem;
+      color: #2563eb;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+    }
+
+    footer {
+      margin-top: 4rem;
+      color: #94a3b8;
+      font-size: 0.8rem;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>Planday Internal Tools</h1>
+    <p>Internal tooling for the Planday team</p>
+  </header>
+
+  <div class="tools-grid">
+
+    <a href="/pdbulkupload/" class="tool-card">
+      <div class="tool-icon">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+        </svg>
+      </div>
+      <h2>Employee Bulk Uploader</h2>
+      <p>Upload and manage employees in bulk across Planday portals using an Excel or CSV file.</p>
+      <span class="arrow">Open tool →</span>
+    </a>
+
+    <a href="/pd-emp-updater/" class="tool-card">
+      <div class="tool-icon">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/>
+        </svg>
+      </div>
+      <h2>Employee Bulk Updater</h2>
+      <p>Bulk update employee details, HR data, wages, and assignments across Planday portals via the Open API.</p>
+      <span class="arrow">Open tool →</span>
+    </a>
+
+    <a href="/pd-leave/" class="tool-card">
+      <div class="tool-icon">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+        </svg>
+      </div>
+      <h2>Leave Adjustments</h2>
+      <p>Retrieve employee leave balances and post bulk adjustments (add or deduct leave) directly via the Open API.</p>
+      <span class="arrow">Open tool →</span>
+    </a>
+
+    <!-- Add new tool cards here -->
+
+  </div>
+
+  <footer>Planday &mdash; Internal use only</footer>
+
+</body>
+</html>

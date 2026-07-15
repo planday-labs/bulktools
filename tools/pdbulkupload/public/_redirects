@@ -1,0 +1,5 @@
+# Proxy Notion API requests to avoid CORS
+/api/notion/* https://api.notion.com/v1/:splat 200
+
+# SPA fallback: serve index.html for all routes that don't match files
+/*    /index.html   200 

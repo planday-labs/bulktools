@@ -1,0 +1,40 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <!-- Build React frontends as part of the .NET build/publish pipeline -->
+  <PropertyGroup>
+    <PdbulkuploadDir>$(MSBuildThisFileDirectory)..\..\tools\pdbulkupload\</PdbulkuploadDir>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <PdEmpUpdaterDir>$(MSBuildThisFileDirectory)..\..\tools\pd-emp-updater\</PdEmpUpdaterDir>
+    <PdLeaveDir>$(MSBuildThisFileDirectory)..\..\tools\pd-leave\</PdLeaveDir>
+  </PropertyGroup>
+
+  <Target Name="BuildPdbulkupload" BeforeTargets="Build;Publish">
+    <Message Importance="high" Text="Installing pdbulkupload npm dependencies..." />
+    <Exec WorkingDirectory="$(PdbulkuploadDir)" Command="npm ci" />
+    <Message Importance="high" Text="Building pdbulkupload..." />
+    <Exec WorkingDirectory="$(PdbulkuploadDir)" Command="npm run build" />
+  </Target>
+
+  <Target Name="BuildPdEmpUpdater" BeforeTargets="Build;Publish">
+    <Message Importance="high" Text="Installing pd-emp-updater npm dependencies..." />
+    <Exec WorkingDirectory="$(PdEmpUpdaterDir)" Command="npm ci" />
+    <Message Importance="high" Text="Building pd-emp-updater..." />
+    <Exec WorkingDirectory="$(PdEmpUpdaterDir)" Command="npm run build" />
+  </Target>
+
+  <Target Name="BuildPdLeave" BeforeTargets="Build;Publish">
+    <Message Importance="high" Text="Installing pd-leave npm dependencies..." />
+    <Exec WorkingDirectory="$(PdLeaveDir)" Command="npm ci" />
+    <Message Importance="high" Text="Building pd-leave..." />
+    <Exec WorkingDirectory="$(PdLeaveDir)" Command="npm run build" />
+  </Target>
+
+</Project>

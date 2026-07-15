@@ -1,0 +1,307 @@
+import { PlandayApiCredentials, Employee, LeaveAccount, LeaveAccountBalance, BalanceAdjustmentPayload, AccountType } from '../types';
+
+const AUTH_URL = 'https://id.planday.com/connect/token';
+const API_BASE_URL = 'https://openapi.planday.com';
+export const EXPECTED_CLIENT_ID = '4cb66728-94bf-416b-8d6c-892e4d36b38e';
+export const STORAGE_KEY = 'plandayCredentials:pd-leave';
+
+let credentials_internal: PlandayApiCredentials | null = null;
+let accessToken: string | null = null;
+let tokenExpiry: number | null = null;
+
+export function initializeService(credentials: PlandayApiCredentials) {
+    if (credentials_internal?.clientId !== credentials.clientId || credentials_internal?.refreshToken !== credentials.refreshToken) {
+        accessToken = null;
+        tokenExpiry = null;
+    }
+    credentials_internal = { ...credentials };
+}
+
+export function resetService() {
+    credentials_internal = null;
+    accessToken = null;
+    tokenExpiry = null;
+}
+
+async function wait(ms: number) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+// Adds a small random delay (0-500ms) to prevent 'thundering herd' when retrying batches
+function getJitter() {
+    return Math.floor(Math.random() * 500);
+}
+
+async function getAccessToken(): Promise<string> {
+    if (accessToken && tokenExpiry && Date.now() < tokenExpiry) {
+        return accessToken;
+    }
+
+    if (!credentials_internal) {
+        throw new Error("Planday service not initialized with credentials.");
+    }
+
+    const payload = new URLSearchParams({
+        'client_id': credentials_internal.clientId,
+        'grant_type': 'refresh_token',
+        'refresh_token': credentials_internal.refreshToken,
+    });
+
+    const response = await fetch(AUTH_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: payload.toString(),
+    });
+
+    if (!response.ok) {
+        const errorText = await response.text();
+        sessionStorage.removeItem(STORAGE_KEY);
+        credentials_internal = null;
+        accessToken = null;
+        tokenExpiry = null;
+        throw new Error(`Failed to refresh access token: ${response.status} ${errorText}. Your credentials may be invalid or expired. Please re-enter them.`);
+    }
+
+    const data = await response.json();
+    accessToken = data.access_token;
+    tokenExpiry = Date.now() + (data.expires_in - 60) * 1000;
+
+    if (data.refresh_token && data.refresh_token !== credentials_internal.refreshToken) {
+        credentials_internal.refreshToken = data.refresh_token;
+        sessionStorage.setItem(STORAGE_KEY, JSON.stringify(credentials_internal));
+    }
+
+    return accessToken;
+}
+
+async function fetchWithAuth(url: string, options: RequestInit = { method: 'GET' }, retries = 5): Promise<Response> {
+    if (!credentials_internal) throw new Error("Service not initialized");
+
+    const method = (options.method ?? 'GET').toUpperCase();
+    const canRetry = method === 'GET' || method === 'HEAD';
+
+    try {
+        const token = await getAccessToken();
+        const headers = {
+            ...options.headers,
+            'Authorization': `Bearer ${token}`,
+            'X-ClientId': credentials_internal.clientId,
+        };
+
+        const response = await fetch(url, { ...options, headers });
+
+        if (canRetry && response.status === 429 && retries > 0) {
+            const retryAfterHeader = response.headers.get('Retry-After');
+            const xRateLimitReset = response.headers.get('x-ratelimit-reset');
+            const retryAfter = retryAfterHeader ? Number.parseInt(retryAfterHeader, 10) * 1000 : NaN;
+            const rateLimitReset = xRateLimitReset ? (Number.parseInt(xRateLimitReset, 10) + 1) * 1000 : NaN;
+            const waitTime = (Number.isFinite(retryAfter) ? retryAfter : Number.isFinite(rateLimitReset) ? rateLimitReset : 2000) + getJitter();
+
+            console.warn(`Rate limited (429). Retrying in ${waitTime}ms...`);
+            await wait(waitTime);
+            return fetchWithAuth(url, options, retries - 1);
+        }
+
+        if (canRetry && response.status >= 500 && retries > 0) {
+             console.warn(`Server error ${response.status}. Retrying...`);
+             await wait(2000 + getJitter());
+             return fetchWithAuth(url, options, retries - 1);
+        }
+
+        return response;
+    } catch (error: any) {
+        const message = error instanceof Error ? error.message : String(error ?? '');
+        const isNetworkError = error instanceof TypeError || error?.name === 'NetworkError' || message.includes('NetworkError');
+
+        if (canRetry && isNetworkError && retries > 0) {
+            console.warn(`Network error detected: ${message}. Retries remaining: ${retries - 1}`);
+            const attempt = 6 - retries;
+            const backoff = 2000 * attempt;
+
+            await wait(backoff + getJitter());
+            return fetchWithAuth(url, options, retries - 1);
+        }
+        throw error;
+    }
+}
+
+async function fetchPaginatedData(endpoint: string): Promise<any[]> {
+    let allData: any[] = [];
+    let offset = 0;
+    const limit = 50; // Keep limit reasonable to avoid massive response bodies
+
+    while (true) {
+        const url = `${API_BASE_URL}${endpoint}${endpoint.includes('?') ? '&' : '?'}limit=${limit}&offset=${offset}`;
+        const response = await fetchWithAuth(url);
+        if (!response.ok) throw new Error(`Failed to fetch ${endpoint}: ${await response.text()}`);
+        const result = await response.json();
+
+        if (result && result.data && Array.isArray(result.data)) {
+            allData = allData.concat(result.data);
+            if (result.data.length < limit || (result.paging && result.paging.total <= allData.length)) {
+                break;
+            }
+            offset += result.data.length;
+        } else {
+            break;
+        }
+    }
+    return allData;
+}
+
+export async function fetchPortalInfo(): Promise<{ name: string }> {
+    const response = await fetchWithAuth(`${API_BASE_URL}/portal/v1.0/info`);
+    if (!response.ok) {
+        console.warn(`Failed to fetch portal info: ${response.status}`);
+        return { name: 'Unknown' };
+    }
+    const result = await response.json();
+    return { name: result.data?.name || 'Unknown' };
+}
+
+export async function fetchEmployees(): Promise<Employee[]> {
+    return fetchPaginatedData('/hr/v1.0/employees');
+}
+
+export async function fetchDepartments(): Promise<{id: number, name: string}[]> {
+    const response = await fetchWithAuth(`${API_BASE_URL}/hr/v1.0/departments`);
+    if (response.status === 403) {
+        throw new Error("Missing HR Departments Scope (hr.departments.read). Please add this scope to your Planday App credentials.");
+    }
+    if (!response.ok) {
+        console.warn(`Failed to fetch departments: ${response.status}`);
+        return [];
+    }
+    const result = await response.json();
+    return result.data || [];
+}
+
+export async function fetchEmployeeGroups(): Promise<{id: number, name: string}[]> {
+    const response = await fetchWithAuth(`${API_BASE_URL}/hr/v1.0/employeegroups`);
+    if (response.status === 403) {
+        throw new Error("Missing HR Employee Groups Scope (hr.employeegroups.read). Please add this scope to your Planday App credentials.");
+    }
+    if (!response.ok) {
+        console.warn(`Failed to fetch employee groups: ${response.status}`);
+        return [];
+    }
+    const result = await response.json();
+    return result.data || [];
+}
+
+export async function fetchEmployeeTypes(): Promise<{id: number, name: string}[]> {
+    const response = await fetchWithAuth(`${API_BASE_URL}/hr/v1.0/employeetypes`);
+    if (response.status === 403) {
+        throw new Error("Missing HR Employee Types Scope (hr.employeetypes.read). Please add this scope to your Planday App credentials.");
+    }
+    if (!response.ok) {
+        console.warn(`Failed to fetch employee types: ${response.status}`);
+        return [];
+    }
+    const result = await response.json();
+    return result.data || [];
+}
+
+export async function fetchAccountTypes(): Promise<AccountType[]> {
+    const response = await fetchWithAuth(`${API_BASE_URL}/absence/v1.0/accounttypes`);
+    if (!response.ok) throw new Error(`Failed to fetch account types: ${await response.text()}`);
+    const result = await response.json();
+    return result.data;
+}
+
+export async function fetchLeaveAccounts(employeeId: number, dateRange?: { start: string; end: string }, status?: string): Promise<LeaveAccount[]> {
+    let endpoint = `/absence/v1.0/accounts?employeeId=${employeeId}`;
+    if (dateRange?.start) {
+        endpoint += `&startDate=${dateRange.start}`;
+    }
+    if (dateRange?.end) {
+        endpoint += `&endDate=${dateRange.end}`;
+    }
+    if (status) {
+        endpoint += `&status=${status}`;
+    }
+    return fetchPaginatedData(endpoint);
+}
+
+export async function fetchAccountBalance(accountId: number, date: string): Promise<LeaveAccountBalance> {
+    const result = await fetchWithAuth(`${API_BASE_URL}/absence/v1.0/accounts/${accountId}/balance?balanceDate=${date}`);
+
+    if (result.status === 404) {
+        return { balance: 0, unit: 'N/A' };
+    }
+
+    if (!result.ok) {
+        const errorText = await result.text();
+        throw new Error(`Failed to fetch account balance: ${errorText}`);
+    }
+
+    const data = await result.json();
+    const accountData = data.data;
+
+    if (!accountData || !accountData.balance || !Array.isArray(accountData.balance) || accountData.balance.length === 0) {
+       return { balance: 0, unit: 'N/A' };
+    }
+
+    const balanceEntry = accountData.balance[0];
+
+    return {
+        balance: balanceEntry.value,
+        unit: balanceEntry.unit?.type || 'N/A'
+    };
+}
+
+export async function postBalanceAdjustment(accountId: number, payload: BalanceAdjustmentPayload): Promise<any> {
+    const result = await fetchWithAuth(`${API_BASE_URL}/absence/v1.0/accounts/${accountId}/adjustments`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+    });
+    if (!result.ok) {
+        const errorText = await result.text();
+        throw new Error(`Failed to post adjustment: ${errorText}`);
+    }
+    if (result.status === 201 || result.status === 200 || result.status === 204) {
+        return { success: true };
+    }
+    try {
+        return await result.json();
+    } catch {
+        return { success: true };
+    }
+}
+
+export async function postFlexBalanceAdjustment(accountId: number, payload: BalanceAdjustmentPayload): Promise<any> {
+    const transactionPayload = {
+        externalId: `bulk-adj-${Date.now()}-${Math.floor(Math.random() * 10000)}`,
+        type: "Adjustment",
+        date: payload.effectiveDate,
+        amounts: [
+            {
+                value: payload.value,
+                unit: {
+                    type: "Hours"
+                }
+            }
+        ],
+        note: payload.comment || "API BULK UPDATE"
+    };
+
+    const result = await fetchWithAuth(`${API_BASE_URL}/absence/v1.0/accounts/${accountId}/transactions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(transactionPayload),
+    });
+
+    if (!result.ok) {
+        const errorText = await result.text();
+        throw new Error(`Failed to post FLEX adjustment: ${errorText}`);
+    }
+    if (result.status === 201 || result.status === 200 || result.status === 204) {
+        return { success: true };
+    }
+    try {
+        return await result.json();
+    } catch {
+        return { success: true };
+    }
+}

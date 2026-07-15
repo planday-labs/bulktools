@@ -1,0 +1,92 @@
+@import "@fontsource/inter/400.css";
+@import "@fontsource/inter/500.css";
+@import "@fontsource/inter/600.css";
+@import "@fontsource/inter/700.css";
+
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+}
+
+:root {
+  color-scheme: light !important;
+}
+html {
+  font-size: 13px; /* Scales Tailwind's rem base to ~81% */
+  color-scheme: light !important;
+}
+body {
+  background-color: #f3f4f6 !important; /* bg-gray-100 */
+  color: #1f2937 !important; /* text-gray-800 */
+  color-scheme: light !important;
+}
+
+/* Force light appearance for form elements explicitly */
+input:where(:not([type="button"]):not([type="submit"]):not([type="reset"]):not([type="file"])), 
+select, 
+textarea {
+  background-color: #ffffff !important;
+  color: #1f2937 !important; /* gray-800 */
+  border-color: #d1d5db; /* gray-300 */
+  color-scheme: light !important;
+}
+
+/* Specific style for inputs when focused to ensure border/ring visibility */
+input:focus, select:focus, textarea:focus {
+    border-color: #3b82f6 !important; /* blue-500 */
+    background-color: #ffffff !important;
+}
+
+/* Custom Checkbox Styling to guarantee white background in dark mode */
+input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  background-color: #ffffff !important;
+  border: 1px solid #d1d5db !important; /* gray-300 */
+  display: inline-grid;
+  place-content: center;
+  width: 1.25rem; /* w-5 */
+  height: 1.25rem; /* h-5 */
+  border-radius: 0.25rem; /* rounded */
+  margin: 0;
+  cursor: pointer;
+}
+
+input[type="checkbox"]::before {
+  content: "";
+  width: 0.65em;
+  height: 0.65em;
+  transform: scale(0);
+  transition: 120ms transform ease-in-out;
+  box-shadow: inset 1em 1em white;
+  transform-origin: center;
+  clip-path: polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0%, 43% 62%);
+}
+
+input[type="checkbox"]:checked {
+  background-color: #2563eb !important; /* blue-600 */
+  border-color: #2563eb !important;
+}
+
+input[type="checkbox"]:checked::before {
+  transform: scale(1);
+}
+
+input[type="checkbox"]:focus {
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 2px #ffffff, 0 0 0 4px #2563eb; /* Ring */
+}
+
+/* Ensure placeholder text is visible */
+input::placeholder {
+  color: #9ca3af !important; /* gray-400 */
+  opacity: 1;
+}
+
+/* Select dropdown options */
+select option {
+  background-color: #ffffff !important;
+  color: #1f2937 !important;
+}
