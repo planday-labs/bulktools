@@ -7,9 +7,6 @@ ARG SONARQUBE_PROJECT_NAME
 ARG SONARQUBE_TOKEN
 ARG SONARQUBE_VERSION
 
-ARG GITHUB_FEED
-ARG GITHUB_TOKEN
-
 # Install Java (SonarQube) and Node.js in one layer
 RUN apt-get update && apt-get install -y --no-install-recommends \
     openjdk-17-jre-headless \
@@ -26,8 +23,6 @@ WORKDIR /build
 COPY . .
 
 ENV HUSKY=0
-
-RUN dotnet nuget add source --username USERNAME --password ${GITHUB_TOKEN} --store-password-in-clear-text --name github ${GITHUB_FEED}
 
 RUN dotnet restore
 
