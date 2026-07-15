@@ -40,5 +40,4 @@ jobs:
           az containerapp update \
             --name ${{ env.APP_NAME }}-production \
             --resource-group ${{ env.RESOURCE_GROUP }} \
-            --image ${{ env.ACR }}/${{ env.APP_NAME }}:${{ github.sha }} \
-            --subscription ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+            --image ${{ env.ACR }}/${{ env.APP_NAME }}:${{ github.sha }}
