@@ -17,7 +17,7 @@ jobs:
       ACR: labsacrprod.azurecr.io
       RESOURCE_GROUP: labs-rg-production
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Azure login
         uses: azure/login@v2
