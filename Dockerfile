@@ -20,12 +20,10 @@ RUN dotnet publish src/InternalHostedFrontendTools.Api --output /app/ --configur
 # Stage 3: Runtime
 FROM mcr.microsoft.com/dotnet/aspnet:10.0
 
-ENV ASPNETCORE_URLS=http://+:5000
-
-EXPOSE 5000
+EXPOSE 8080
 
 USER app
 
 WORKDIR /app
 COPY --from=build-env /app .
-ENTRYPOINT ["bash", "-c", "dotnet InternalHostedFrontendTools.Api.dll"]
+ENTRYPOINT ["dotnet", "InternalHostedFrontendTools.Api.dll"]
